@@ -147,16 +147,15 @@ try:
                 
                 with cols[1]:
                     if st.button("Terminer", key=f"end_{id_d}"):
+                        # Nesta3mlou 'qte' elli jebneha mel task
+                        qte_a_ajouter = qte 
         
-                        qte_a_ajouter = row[2] 
-        
-        # Update Stock
+                        # Update Stock
                         conn.execute("""
                             UPDATE Stock 
                             SET quantite = quantite + ? 
                             WHERE reference = (SELECT reference FROM Demandes WHERE id=?)
                         """, (qte_a_ajouter, id_d))
-        
         # Update Statut Demande
                         conn.execute("""
                             UPDATE Demandes 
