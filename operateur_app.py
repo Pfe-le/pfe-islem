@@ -175,8 +175,8 @@ try:
                     - **Temps:** {} s
                     - **Amplitude:** {} %
                 """.format(press if press else '~', temps if temps else '~', amp if amp else '~'))
-        else:
-            st.success("✅ Aucune tâche en attente pour ce shift")
+       # else:
+        #    st.success("✅ Aucune tâche en attente pour ce shift")
 except Exception as e:
     st.error(f"Erreur lors de la récupération des tâches: {str(e)}")
 finally:
