@@ -91,13 +91,13 @@ def init_db():
 
         # Parcours des lignes 2 à 500 (ajuste si plus de lignes)
             for row_idx in range(2, 501):
-                for col_idx in range(1, 4):  # A=Fiat, B=Fors, C=Sigip
+                for col_idx in range(1, 2):  # A=Fiat
                     cell_value = sheet.cell(row=row_idx, column=col_idx).value
                     if cell_value is not None:
                         val_ref = str(cell_value).strip()
 
                     # Ignorer les entêtes / valeurs inutiles
-                        if val_ref.lower() not in ['nan','none','','fiat pn','fors pn','sigip pn','ref cab','ref','pn']:
+                        if val_ref.lower() not in ['nan','none','','fiat pn','ref cab','ref','pn']:
                         
                         # Vérifie si la référence existe déjà
                             cursor.execute("SELECT reference FROM Produits WHERE reference=?", (val_ref,))
@@ -117,7 +117,7 @@ def init_db():
                             
                                 count_log += 1
 
-            print(f"✅ Logistique OK : {count_log} références lues dans Fiat, Fors et Sigip.")
+            print(f"✅ Logistique OK : {count_log} références lues dans Fiat.")
         else:
             print("❌ Onglet 'BESOIN' introuvable.")
     except Exception as e:
