@@ -176,7 +176,7 @@ try:
                 st.warning("⏳ En attente (appuyez sur pédale)")
             else:
                 # Pas de demande
-                st.info("📭 Aucune demande")
+                st.info(" Aucune demande")
         
         with col_btn2:
             # Affichage de la référence en cours
@@ -191,14 +191,14 @@ try:
                     """, (demande_id,))
                     ref_info = ref_cursor.fetchone()
                     if ref_info:
-                        st.metric("📦 Référence", ref_info[0])
+                        st.metric(" Référence", ref_info[0])
                     conn.close()
                 except:
                     pass
         
         with col_btn3:
             # Bouton d'annulation (manuel) - toujours présent
-            if st.button("↩️ Annuler dernière pièce", key="cancel_btn", use_container_width=True):
+            if st.button("Annuler dernière pièce", key="cancel_btn", use_container_width=True):
                 try:
                     cancel_response = requests.post(
                         f"{API_URL}/api/decrement",
@@ -226,7 +226,7 @@ try:
                 
                 if params:
                     st.markdown("---")
-                    st.subheader("⚙️ Paramètres soudure")
+                    st.subheader(" Paramètres soudure")
                     col_p1, col_p2, col_p3 = st.columns(3)
                     with col_p1:
                         st.metric("Pression", f"{params[0] if params[0] else '~'} bar")
@@ -248,7 +248,7 @@ except Exception as e:
 
 # ==================== LISTE DES DEMANDES (Lecture seule) ====================
 st.markdown("---")
-st.subheader("📋 Liste des demandes en attente")
+st.subheader(" Liste des demandes en attente")
 
 try:
     conn = sqlite3.connect(DB_PATH)
@@ -291,24 +291,3 @@ except Exception as e:
 finally:
     conn.close()
 
-# ==================== INSTRUCTIONS POUR L'OPÉRATEUR ====================
-with st.expander("📖 Instructions"):
-    st.markdown("""
-    ### Comment utiliser ce poste (Mode Automatique)
-    
-    1. **Sélectionnez votre Shift (A ou B)** dans la barre latérale
-    2. **Entrez votre ID Opérateur**
-    3. **La machine gère automatiquement** le lancement et l'arrêt des productions
-    
-    ### Contrôle par pédale :
-    - **Appuyez sur la pédale** → +1 pièce produite
-    - **Bouton Annulation** → -1 pièce (en cas d'erreur)
-    
-    ### Signalisation lumineuse :
-    - 🟢 **Vert** : Machine disponible, prête à produire
-    - 🟠 **Orange** : Demande en attente (appuyez sur pédale pour démarrer)
-    - 🔴 **Rouge** : Production en cours
-    
-    ### En cas de panne :
-    Utilisez le formulaire dans la barre latérale pour signaler immédiatement le problème.
-    """)
