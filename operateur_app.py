@@ -17,7 +17,6 @@ st_autorefresh(interval=5000, key="main_refresh")
 if 'task_counter' not in st.session_state:
     st.session_state.task_counter = 0
 
-# Fonction pour générer des clés uniques
 def generate_unique_key(base_name):
     st.session_state.task_counter += 1
     return f"{base_name}_{st.session_state.task_counter}"
@@ -25,12 +24,12 @@ def generate_unique_key(base_name):
 # Sidebar - Identification
 with st.sidebar:
     st.title("Identification")
-    id_op_saisie = st.text_input("ID Opérateur (Saisie)", key="operateur_id")
+    id_op_saisie = st.text_input("ID Operateur (Saisie)", key="operateur_id")
     shift = st.radio("Shift", ["A", "B"], key="shift_selection", horizontal=True)
     
     # Signalement de panne
-    st.subheader("⚠️ Signalement Panne")
-    with st.expander("Déclarer une Panne"):
+    st.subheader("Signalement Panne")
+    with st.expander("Declarer une Panne"):
         cause = st.text_input("Cause de la panne", key="panne_cause")
         
         if st.button("Signaler Panne", key="signal_panne_btn"):
@@ -39,16 +38,16 @@ with st.sidebar:
                     conn = sqlite3.connect(DB_PATH)
                     conn.execute("""
                         INSERT INTO Pannes (operateur_id, cause, debut_panne, statut)
-                        VALUES (?, ?, datetime('now'), '🔴 Ouvert')
+                        VALUES (?, ?, datetime('now'), 'Ouvert')
                     """, (id_op_saisie, cause))
                     conn.commit()
-                    st.error("Panne signalée au superviseur !")
+                    st.error("Panne signalee au superviseur !")
                 except Exception as e:
                     st.error(f"Erreur: {str(e)}")
                 finally:
                     conn.close()
             else:
-                st.warning("Saisir ID opérateur + cause")
+                st.warning("Saisir ID operateur + cause")
 
     # Historique
     with st.expander("Historique"):
@@ -67,7 +66,7 @@ with st.sidebar:
             FROM Demandes d
             JOIN Produits p ON d.reference = p.reference
             WHERE d.shift = ?
-            AND d.statut = 'Terminé'
+            AND d.statut = 'Termine'
             ORDER BY d.fin_production DESC
             LIMIT 20
             """
@@ -75,22 +74,22 @@ with st.sidebar:
 
             if hist:
                 df = pd.DataFrame(hist, columns=[
-                    "Module","Opérateur","Début","Fin","Durée(s)","Pression","Temps","Amplitude"
+                    "Module","Operateur","Debut","Fin","Duree(s)","Pression","Temps","Amplitude"
                 ])
                 st.dataframe(df, use_container_width=True)
 
                 if st.button("Effacer l'historique", key="clear_history_btn"):
                     conn.execute("""
                     UPDATE Demandes 
-                    SET statut = 'Archivé' 
-                    WHERE shift = ? AND statut = 'Terminé'
+                    SET statut = 'Archive' 
+                    WHERE shift = ? AND statut = 'Termine'
                     """, (shift,))
                     conn.commit()
                     st.rerun()
             else:
-                st.info("Aucune tâche terminée récemment")
+                st.info("Aucune tache terminee recemment")
         except Exception as e:
-            st.error(f"Erreur base de données: {str(e)}")
+            st.error(f"Erreur base de donnees: {str(e)}")
         finally:
             conn.close()
 
@@ -107,13 +106,13 @@ try:
         d.quantite,
         d.statut,
         p.pression,
-        IFNULL(p.temps,0),
-        IFNULL(p.amplitude,0),
+        IFNULL(p.temps,0) as temps,
+        IFNULL(p.amplitude,0) as amplitude,
         d.date_besoin
     FROM Demandes d
     JOIN Produits p ON d.reference = p.reference
     WHERE d.shift = ?
-    AND d.statut NOT IN ('Terminé','Archivé')
+    AND d.statut NOT IN ('Termine','Archive')
     ORDER BY d.date_besoin ASC
     """
     tasks = conn.execute(query, (shift,)).fetchall()
@@ -122,51 +121,45 @@ try:
         for task in tasks:
             id_d, fam, mod, qte, stat, press, temps, amp, date_b = task
             
-            with st.expander(f"{mod} | {fam} | Qté {qte} (ID: {id_d})"):
+            # Afficher la date dans le titre de l'expander
+            with st.expander(f"{mod} | {fam} | Qte {qte} | Date besoin: {date_b} (ID: {id_d})"):
                 cols = st.columns([1, 1, 2])
                 
                 with cols[0]:
-                    # ========== BOUTON LANCER PRODUCTION MODIFIÉ ==========
-                    # Si la production est déjà en cours, on affiche un bouton vert désactivé
-                    if stat == '🟢En cours':
+                    # Bouton Lancer production 
+                    if stat == 'En cours':
                         st.button(
-                            "✅ Production en cours (Auto)", 
+                            "Production en cours ", 
                             key=f"start_prod_{id_d}_{shift}",
-                            disabled=True,
-                            help="Production lancée automatiquement par l'ESP32"
+                            disabled=True
                         )
                     else:
-                        # Sinon, bouton actif normal (l'opérateur peut lancer manuellement)
-                        if st.button(
-                            "🚀 Lancer production", 
-                            key=f"start_prod_{id_d}_{shift}",
-                            help=f"Démarrer la production de {mod}"
-                        ):
+                        if st.button("Lancer production", key=f"start_prod_{id_d}_{shift}"):
+                            # Mettre à jour le statut
                             conn.execute("""
                                 UPDATE Demandes
-                                SET statut = '🟢En cours',
+                                SET statut = 'En cours',
                                     debut_production = datetime('now'),
                                     operateur_id = ?
                                 WHERE id = ?
                             """, (id_op_saisie, id_d))
                             conn.commit()
+                            # Afficher les paramètres de soudure après le lancement
+                            st.success(f"Production lancee pour {mod}")
+                            st.info(f"Parametres soudure - Pression: {press} bar, Temps: {temps} s, Amplitude: {amp} %")
                             st.rerun()
                 
                 with cols[1]:
-                    # ========== BOUTON TERMINER (toujours actif) ==========
-                    # L'opérateur peut terminer manuellement même si c'est auto
-                    if st.button("🏁 Terminer", key=f"end_{id_d}"):
+                    if st.button("Terminer", key=f"end_{id_d}"):
                         qte_a_ajouter = qte
-                        # Update Stock
                         conn.execute("""
                             UPDATE Stock 
                             SET quantite = quantite + ? 
                             WHERE reference = (SELECT reference FROM Demandes WHERE id=?)
                         """, (qte_a_ajouter, id_d))
-                        # Update Statut Demande
                         conn.execute("""
                             UPDATE Demandes 
-                            SET statut='Terminé', fin_production=datetime('now') 
+                            SET statut='Termine', fin_production=datetime('now') 
                             WHERE id=?
                         """, (id_d,))
                         conn.commit()
@@ -175,13 +168,13 @@ try:
                 with cols[2]:
                     st.write(f"**Statut:** {stat}")
                     st.markdown("""
-                    **Paramètres soudure automatiques:**
+                    **Parametres soudure automatiques:**
                     - **Pression:** {} bar
                     - **Temps:** {} s
                     - **Amplitude:** {} %
                     """.format(press if press else '~', temps if temps else '~', amp if amp else '~'))
        
 except Exception as e:
-    st.error(f"Erreur lors de la récupération des tâches: {str(e)}")
+    st.error(f"Erreur lors de la recuperation des taches: {str(e)}")
 finally:
     conn.close()
